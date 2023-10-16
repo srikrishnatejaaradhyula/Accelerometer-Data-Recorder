@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Accelerometer Data Recorder</title>
+    <style>
+        /* Add your CSS styles here */
+        #status {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Accelerometer Data Recorder</h1>
+    <p id="status">Click the button to start recording.</p>
+
+    <button id="startButton">Start Recording</button>
+    <button id="stopButton" style="display: none;">Stop Recording</button>
+
+    <script>
+        let isRecording = false;
+        let data = [];
+        let threshold = 2.0; // Adjust this threshold as needed
+
+        const startButton = document.getElementById("startButton");
+        const stopButton = document.getElementById("stopButton");
+        const status = document.getElementById("status");
+
+        let accelerometerOptions = {
+            frequency: 1000 // Set the data update frequency (in milliseconds)
+        };
+
+        let accelerometer;
+
+        startButton.addEventListener("click", () => {
+            if (!isRecording) {
+                isRecording = true;
+                startButton.style.display = "none";
+                stopButton.style.display = "block";
+                status.innerHTML = "Recording...";
+                data = [];
+
+                accelerometer = new Accelerometer(accelerometerOptions);
+
+                accelerometer.addEventListener("reading", () => {
+                    const acceleration = Math.sqrt(
+                        accelerometer.x * accelerometer.x +
+                        accelerometer.y * accelerometer.y +
+                        accelerometer.z * accelerometer.z
+                    );
+
+                    if (acceleration > threshold) {
+                        data.push({
+                            x: accelerometer.x,
+                            y: accelerometer.y,
+                            z: accelerometer.z,
+                            acceleration: acceleration,
+                        });
+                    }
+                });
+
+                accelerometer.start();
+            }
+        });
+
+        stopButton.addEventListener("click", () => {
+            if (isRecording) {
+                isRecording = false;
+                stopButton.style.display = "none";
+                startButton.style.display = "block";
+                status.innerHTML = "Recording stopped";
+
+                if (data.length > 0) {
+                    // Convert data to Excel format (you may use other formats or libraries)
+                    const csv = "X,Y,Z,Acceleration\n" + data.map(item => Object.values(item).join(',')).join('\n');
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+
+                    // Create a download link for the Excel file
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'accelerometer_data.csv';
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                } else {
+                    status.innerHTML = "No data to save.";
+                }
+
+                accelerometer.stop();
+            }
+        });
+    </script>
+</body>
+</html>
